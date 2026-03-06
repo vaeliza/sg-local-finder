@@ -1,9 +1,7 @@
 import streamlit as st
 import pandas as pd
-import requests
 from urllib.parse import quote
 from geopy.distance import geodesic
-import io
 
 from supabase_client import get_supabase_client
 from google_places import get_place_details
@@ -12,7 +10,6 @@ from google_places import get_place_details
 # PAGE CONFIG
 # -----------------------
 st.set_page_config(page_title="🇸🇬 SG Local Finder", layout="wide")
-
 st.title("🇸🇬 SG Local Finder")
 st.write("Discover Singapore's independent businesses.")
 
@@ -87,7 +84,7 @@ for _, row in df.iterrows():
 
     score = calculate_support_score(rating, review_count, has_website)
 
-    # Get latitude & longitude for location filtering
+    # Latitude/Longitude for location filtering
     lat = result.get("geometry", {}).get("location", {}).get("lat")
     lng = result.get("geometry", {}).get("location", {}).get("lng")
 
@@ -130,22 +127,13 @@ for item in filtered_businesses:
     score = item.get("score", 0)
     result = item.get("details", {})
 
-    # 1️⃣ Photo (robust)
+    # 1️⃣ Photo (direct URL method)
     photo_url = "https://via.placeholder.com/150?text=No+Image"
     photos = result.get("photos")
     if photos and len(photos) > 0:
         photo_ref = photos[0].get("photo_reference")
         if photo_ref:
-            try:
-                api_url = (
-                    f"https://maps.googleapis.com/maps/api/place/photo"
-                    f"?maxwidth=400&photoreference={photo_ref}&key={st.secrets['GOOGLE_API_KEY']}"
-                )
-                resp = requests.get(api_url, allow_redirects=True, timeout=5)
-                if resp.status_code == 200:
-                    photo_url = io.BytesIO(resp.content)
-            except Exception as e:
-                print(f"Failed to fetch image for {row['name']}: {e}")
+            photo_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_ref}&key={st.secrets['GOOGLE_API_KEY']}"
 
     # 2️⃣ Top 2 reviews
     top_reviews = ""
