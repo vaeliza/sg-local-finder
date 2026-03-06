@@ -88,41 +88,41 @@ business_list = sorted(business_list, key=lambda x: x["score"], reverse=True)
 # -----------------------
 
 for item in business_list:
-
     row = item["row"]
     rating = item["rating"]
     reviews = item["reviews"]
     score = item["score"]
     result = item["details"]
 
-    with st.container():
+    # Get photo URL from Google if available
+    photo_url = ""
+    if "photos" in result:
+        photo_ref = result["photos"][0]["photo_reference"]
+        photo_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_ref}&key={st.secrets['GOOGLE_API_KEY']}"
 
-        st.subheader(row["name"])
+    st.markdown(
+        f"""
+        <div style="
+            display: flex; 
+            flex-direction: row; 
+            align-items: flex-start; 
+            padding: 15px; 
+            border: 1px solid #ddd; 
+            border-radius: 10px; 
+            margin-bottom: 15px; 
+            background-color: #f9f9f9;">
+            
+            <img src="{photo_url}" width="150" height="150" style="border-radius:10px; margin-right:15px;">
+            
+            <div style="flex:1;">
+                <h3>{row['name']}</h3>
+                <p>{row['description']}</p>
+                <p><b>Category:</b> {row['category']}</p>
+                <p><b>Website:</b> <a href="{row['website']}" target="_blank">{row['website']}</a></p>
+                <p>⭐ Rating: {rating} | 🗣 Reviews: {reviews} | 🏆 Support Local Score: {score}</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True
+    )
 
-        st.write(row["description"])
-
-        st.write(f"Category: {row['category']}")
-
-        st.write(f"🌐 Website: {row['website']}")
-
-        st.write(f"⭐ Rating: {rating}")
-
-        st.write(f"🗣 Reviews: {reviews}")
-
-        st.write(f"🏆 Support Local Score: {score}")
-
-        if "opening_hours" in result:
-
-            st.write("Opening Hours:")
-
-            for hour in result["opening_hours"]["weekday_text"]:
-                st.write(hour)
-
-        if "reviews" in result:
-
-            st.write("Customer Reviews:")
-
-            for review in result["reviews"][:2]:
-                st.write(f"{review['author_name']}: {review['text']}")
-
-        st.divider()
+    
