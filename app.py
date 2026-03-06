@@ -101,28 +101,30 @@ for item in business_list:
         photo_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_ref}&key={st.secrets['GOOGLE_API_KEY']}"
 
     st.markdown(
-        f"""
-        <div style="
-            display: flex; 
-            flex-direction: row; 
-            align-items: flex-start; 
-            padding: 15px; 
-            border: 1px solid #ddd; 
-            border-radius: 10px; 
-            margin-bottom: 15px; 
-            background-color: #f9f9f9;">
-            
-            <img src="{photo_url}" width="150" height="150" style="border-radius:10px; margin-right:15px;">
-            
-            <div style="flex:1;">
-                <h3>{row['name']}</h3>
-                <p>{row['description']}</p>
-                <p><b>Category:</b> {row['category']}</p>
-                <p><b>Website:</b> <a href="{row['website']}" target="_blank">{row['website']}</a></p>
-                <p>⭐ Rating: {rating} | 🗣 Reviews: {reviews} | 🏆 Support Local Score: {score}</p>
-            </div>
+    f"""
+    <div style="
+        display: flex; 
+        flex-direction: row; 
+        align-items: flex-start; 
+        padding: 15px; 
+        border: 1px solid #ddd; 
+        border-radius: 10px; 
+        margin-bottom: 15px; 
+        background-color: #f9f9f9;">
+        
+        <img src="{photo_url}" width="150" height="150" style="border-radius:10px; margin-right:15px;">
+        
+        <div style="flex:1;">
+            <h3>{row['name']}</h3>
+            <p>{row['description']}</p>
+            <p><b>Category:</b> {row['category']}</p>
+            <p><b>Website:</b> <a href="{row['website']}" target="_blank">{row['website']}</a></p>
+            <p>⭐ Rating: {rating} | 🗣 Reviews: {reviews} | 🏆 Support Local Score: {score}</p>
+            {top_reviews}
         </div>
-        """, unsafe_allow_html=True
-    )
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
     
