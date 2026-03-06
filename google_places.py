@@ -16,3 +16,7 @@ def get_place_details(place_id):
     response = requests.get(url, params=params)
 
     return response.json()
+
+details = get_place_details(row["place_id"])
+result = details.get("result", {})
+print(result.get("photos", "No photos found"))
