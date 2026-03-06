@@ -16,7 +16,6 @@ data = supabase.table("businesses").select("*").execute()
 
 df = pd.DataFrame(data.data)
 
-st.write(df)
 
 # -----------------------
 # SEARCH + FILTER
