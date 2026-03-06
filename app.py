@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import requests
+import io
 from urllib.parse import quote
 from geopy.distance import geodesic
 
@@ -79,13 +80,23 @@ for _, row in df.iterrows():
     has_website = bool(row.get("website"))
     score = calculate_support_score(rating, review_count, has_website)
 
-    # Get photo URL
-    photo_url = "https://via.placeholder.com/300x200?text=No+Image"
+    # -----------------------
+    # PHOTO FIX: download image bytes
+    # -----------------------
+    photo_bytes = None
     photos = result.get("photos")
     if photos and len(photos) > 0:
         photo_ref = photos[0].get("photo_reference")
         if photo_ref:
-            photo_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_ref}&key={st.secrets['GOOGLE_API_KEY']}"
+            photo_api_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_ref}&key={st.secrets['GOOGLE_API_KEY']}"
+            try:
+                resp = requests.get(photo_api_url)
+                if resp.status_code == 200:
+                    photo_bytes = io.BytesIO(resp.content)
+            except:
+                photo_bytes = None
+    if not photo_bytes:
+        photo_bytes = "https://via.placeholder.com/300x200?text=No+Image"
 
     # Top 2 reviews
     top_reviews = []
@@ -95,8 +106,10 @@ for _, row in df.iterrows():
             text = review.get("text", "")
             top_reviews.append(f"{author}: {text}")
 
+    # Google Maps link
     maps_url = f"https://www.google.com/maps/search/?api=1&query={quote(row['name'])}&query_place_id={row['place_id']}"
 
+    # Latitude & longitude for distance filter
     lat = result.get("geometry", {}).get("location", {}).get("lat")
     lng = result.get("geometry", {}).get("location", {}).get("lng")
 
@@ -105,7 +118,7 @@ for _, row in df.iterrows():
         "rating": rating,
         "reviews": review_count,
         "score": score,
-        "photo_url": photo_url,
+        "photo_bytes": photo_bytes,
         "top_reviews": top_reviews,
         "maps_url": maps_url,
         "lat": lat,
@@ -119,11 +132,13 @@ filtered_businesses = []
 for item in business_list:
     b_lat = item.get("lat")
     b_lng = item.get("lng")
-    if user_lat and user_lng and b_lat and b_lng:
+    # Only apply radius filter if user location is entered
+    if user_lat is not None and user_lng is not None and b_lat is not None and b_lng is not None:
         distance_km = geodesic((user_lat, user_lng), (b_lat, b_lng)).km
         if distance_km <= search_radius_km:
             filtered_businesses.append(item)
     else:
+        # If no location entered, show all businesses
         filtered_businesses.append(item)
 
 # -----------------------
@@ -132,20 +147,20 @@ for item in business_list:
 filtered_businesses = sorted(filtered_businesses, key=lambda x: x["score"], reverse=True)
 
 # -----------------------
-# DISPLAY BUSINESS CARDS (using Streamlit components)
+# DISPLAY BUSINESS CARDS
 # -----------------------
 for item in filtered_businesses:
     row = item["row"]
     rating = item["rating"]
     reviews = item["reviews"]
     score = item["score"]
-    photo_url = item["photo_url"]
+    photo_bytes = item["photo_bytes"]
     top_reviews = item["top_reviews"]
     maps_url = item["maps_url"]
 
     col1, col2 = st.columns([1, 3])
     with col1:
-        st.image(photo_url, use_column_width=True)
+        st.image(photo_bytes, use_column_width=True)
     with col2:
         st.subheader(row.get("name", "Unnamed Business"))
         st.write(row.get("description", "No description available"))
