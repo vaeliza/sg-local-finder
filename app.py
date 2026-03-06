@@ -1,8 +1,26 @@
-import streamlit as st
-import pandas as pd
 
 from supabase_client import get_supabase_client
 from google_places import get_place_details
+
+import geopy.distance
+
+# User inputs a location (address)
+search_location = st.text_input("Enter a location to search nearby (e.g., Orchard, Singapore):")
+search_radius_km = st.slider("Search radius (km)", min_value=1, max_value=10, value=5)
+
+import requests
+
+user_lat, user_lng = None, None
+if search_location:
+    geocode_url = "https://maps.googleapis.com/maps/api/geocode/json"
+    params = {
+        "address": search_location,
+        "key": st.secrets["GOOGLE_API_KEY"]
+    }
+    resp = requests.get(geocode_url, params=params).json()
+    if resp.get("results"):
+        user_lat = resp["results"][0]["geometry"]["location"]["lat"]
+        user_lng = resp["results"][0]["geometry"]["location"]["lng"]
 
 st.set_page_config(page_title="SG Local Finder", layout="wide")
 
@@ -144,5 +162,4 @@ for item in business_list:
 
     # Divider between cards
     st.markdown("---")
-
 
