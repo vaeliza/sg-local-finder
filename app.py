@@ -94,37 +94,37 @@ for item in business_list:
     score = item["score"]
     result = item["details"]
 
-    # Get photo URL from Google if available
+    # Get photo URL or fallback
     photo_url = ""
     if "photos" in result:
         photo_ref = result["photos"][0]["photo_reference"]
         photo_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_ref}&key={st.secrets['GOOGLE_API_KEY']}"
+    else:
+        photo_url = "https://via.placeholder.com/150?text=No+Image"
 
-    st.markdown(
-    f"""
-    <div style="
-        display: flex; 
-        flex-direction: row; 
-        align-items: flex-start; 
-        padding: 15px; 
-        border: 1px solid #ddd; 
-        border-radius: 10px; 
-        margin-bottom: 15px; 
-        background-color: #f9f9f9;">
-        
-        <img src="{photo_url}" width="150" height="150" style="border-radius:10px; margin-right:15px;">
-        
-        <div style="flex:1;">
-            <h3>{row['name']}</h3>
-            <p>{row['description']}</p>
-            <p><b>Category:</b> {row['category']}</p>
-            <p><b>Website:</b> <a href="{row['website']}" target="_blank">{row['website']}</a></p>
-            <p>⭐ Rating: {rating} | 🗣 Reviews: {reviews} | 🏆 Support Local Score: {score}</p>
-            
-        </div>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+    # Top 2 reviews
+    top_reviews = ""
+    if "reviews" in result:
+        for review in result["reviews"][:2]:
+            top_reviews += f"{review['author_name']}: {review['text']}\n\n"
+
+    # Create 2 columns: image | text
+    col1, col2 = st.columns([1, 3])
+
+    with col1:
+        st.image(photo_url, width=150)
+
+    with col2:
+        st.subheader(row["name"])
+        st.write(row["description"])
+        st.write(f"**Category:** {row['category']}")
+        st.write(f"🌐 [Website]({row['website']})")
+        st.write(f"⭐ Rating: {rating} | 🗣 Reviews: {reviews} | 🏆 Support Local Score: {score}")
+        if top_reviews:
+            st.write("**Top Reviews:**")
+            st.write(top_reviews)
+
+    st.markdown("---")  # Divider between cards
+
 
     
