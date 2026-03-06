@@ -128,16 +128,14 @@ for item in filtered_businesses:
     score = item.get("score", 0)
     result = item.get("details", {})
 
-   # 1️⃣ Photo (correct way)
-    photo_url = "https://via.placeholder.com/150?text=No+Image"  # default placeholder
+    # 1️⃣ Photo via HTML so browser handles redirect
+    photo_url = "https://via.placeholder.com/150?text=No+Image"
     photos = result.get("photos")
     if photos and len(photos) > 0:
         photo_ref = photos[0].get("photo_reference")
         if photo_ref:
-        # Use the Google Place Photo API URL directly
             photo_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_ref}&key={st.secrets['GOOGLE_API_KEY']}"
 
-    st.image(photo_url, width=150)
     # 2️⃣ Top 2 reviews
     top_reviews = ""
     if "reviews" in result and len(result["reviews"]) > 0:
@@ -146,13 +144,13 @@ for item in filtered_businesses:
             text = review.get("text", "")
             top_reviews += f"{author}: {text}\n\n"
 
-    # 3️⃣ Google Maps link (URL-encoded)
+    # 3️⃣ Google Maps link
     maps_url = f"https://www.google.com/maps/search/?api=1&query={quote(row['name'])}&query_place_id={row['place_id']}"
 
     # 4️⃣ Layout: 2 columns
     col1, col2 = st.columns([1, 3])
     with col1:
-        st.image(photo_url, width=150)
+        st.markdown(f'<img src="{photo_url}" width="150" style="border-radius:10px;">', unsafe_allow_html=True)
     with col2:
         st.subheader(row.get("name", "Unnamed Business"))
         st.write(row.get("description", "No description available"))
