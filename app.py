@@ -118,7 +118,7 @@ for item in business_list:
 filtered_businesses = sorted(filtered_businesses, key=lambda x: x["score"], reverse=True)
 
 # -----------------------
-# DISPLAY BUSINESS CARDS (Bootstrap-style)
+# DISPLAY BUSINESS CARDS (RESPONSIVE)
 # -----------------------
 for item in filtered_businesses:
     row = item["row"]
@@ -146,13 +146,24 @@ for item in filtered_businesses:
     # Google Maps link
     maps_url = f"https://www.google.com/maps/search/?api=1&query={quote(row['name'])}&query_place_id={row['place_id']}"
 
-    # Bootstrap-style card HTML
+    # Responsive card HTML
     card_html = f"""
-    <div style="display:flex; flex-direction:row; border:1px solid #ddd; border-radius:10px; box-shadow:0 2px 5px rgba(0,0,0,0.1); margin-bottom:20px; overflow:hidden;">
-        <div style="flex:1 0 200px;">
+    <style>
+        @media(max-width:768px) {{
+            .card-container {{
+                flex-direction: column !important;
+            }}
+            .card-image {{
+                width:100% !important;
+                height:auto !important;
+            }}
+        }}
+    </style>
+    <div class="card-container" style="display:flex; flex-direction:row; border:1px solid #ddd; border-radius:10px; box-shadow:0 2px 5px rgba(0,0,0,0.1); margin-bottom:20px; overflow:hidden;">
+        <div class="card-image" style="flex:1 0 200px;">
             <img src="{photo_url}" style="width:100%; height:100%; object-fit:cover;">
         </div>
-        <div style="flex:2; padding:15px;">
+        <div class="card-info" style="flex:2; padding:15px;">
             <h3 style="margin:0;">{row.get('name','Unnamed Business')}</h3>
             <p>{row.get('description','No description available')}</p>
             <p><b>Category:</b> {row.get('category','N/A')}</p>
@@ -163,5 +174,4 @@ for item in filtered_businesses:
         </div>
     </div>
     """
-
     st.markdown(card_html, unsafe_allow_html=True)
