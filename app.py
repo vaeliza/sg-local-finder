@@ -85,7 +85,6 @@ for _, row in df.iterrows():
 
     score = calculate_support_score(rating, review_count, has_website)
 
-    # Latitude/Longitude for location filtering
     lat = result.get("geometry", {}).get("location", {}).get("lat")
     lng = result.get("geometry", {}).get("location", {}).get("lng")
 
@@ -119,7 +118,7 @@ for item in business_list:
 filtered_businesses = sorted(filtered_businesses, key=lambda x: x["score"], reverse=True)
 
 # -----------------------
-# DISPLAY BUSINESS CARDS
+# DISPLAY BUSINESS CARDS (Bootstrap-style)
 # -----------------------
 for item in filtered_businesses:
     row = item["row"]
@@ -128,40 +127,41 @@ for item in filtered_businesses:
     score = item.get("score", 0)
     result = item.get("details", {})
 
-    # 1️⃣ Photo via HTML so browser handles redirect
-    photo_url = "https://via.placeholder.com/150?text=No+Image"
+    # Photo
+    photo_url = "https://via.placeholder.com/300x200?text=No+Image"
     photos = result.get("photos")
     if photos and len(photos) > 0:
         photo_ref = photos[0].get("photo_reference")
         if photo_ref:
             photo_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_ref}&key={st.secrets['GOOGLE_API_KEY']}"
 
-    # 2️⃣ Top 2 reviews
+    # Top 2 reviews
     top_reviews = ""
     if "reviews" in result and len(result["reviews"]) > 0:
         for review in result["reviews"][:2]:
             author = review.get("author_name", "Anonymous")
             text = review.get("text", "")
-            top_reviews += f"{author}: {text}\n\n"
+            top_reviews += f"<b>{author}:</b> {text}<br>"
 
-    # 3️⃣ Google Maps link
+    # Google Maps link
     maps_url = f"https://www.google.com/maps/search/?api=1&query={quote(row['name'])}&query_place_id={row['place_id']}"
 
-    # 4️⃣ Layout: 2 columns
-    col1, col2 = st.columns([1, 3])
-    with col1:
-        st.markdown(f'<img src="{photo_url}" width="150" style="border-radius:10px;">', unsafe_allow_html=True)
-    with col2:
-        st.subheader(row.get("name", "Unnamed Business"))
-        st.write(row.get("description", "No description available"))
-        st.write(f"**Category:** {row.get('category', 'N/A')}")
-        website = row.get("website", "")
-        if website:
-            st.markdown(f"🌐 [Website]({website})", unsafe_allow_html=True)
-        st.write(f"⭐ Rating: {rating} | 🗣 Reviews: {reviews} | 🏆 Support Local Score: {score}")
-        if top_reviews:
-            st.write("**Top Reviews:**")
-            st.write(top_reviews)
-        st.markdown(f"📍 [View on Google Maps]({maps_url})", unsafe_allow_html=True)
+    # Bootstrap-style card HTML
+    card_html = f"""
+    <div style="display:flex; flex-direction:row; border:1px solid #ddd; border-radius:10px; box-shadow:0 2px 5px rgba(0,0,0,0.1); margin-bottom:20px; overflow:hidden;">
+        <div style="flex:1 0 200px;">
+            <img src="{photo_url}" style="width:100%; height:100%; object-fit:cover;">
+        </div>
+        <div style="flex:2; padding:15px;">
+            <h3 style="margin:0;">{row.get('name','Unnamed Business')}</h3>
+            <p>{row.get('description','No description available')}</p>
+            <p><b>Category:</b> {row.get('category','N/A')}</p>
+            {"<p>🌐 <a href='"+row.get('website')+"' target='_blank'>Website</a></p>" if row.get('website') else ""}
+            <p>⭐ Rating: {rating} | 🗣 Reviews: {reviews} | 🏆 Support Local Score: {score}</p>
+            {("<p><b>Top Reviews:</b><br>"+top_reviews+"</p>") if top_reviews else ""}
+            <p>📍 <a href="{maps_url}" target="_blank">View on Google Maps</a></p>
+        </div>
+    </div>
+    """
 
-    st.markdown("---")
+    st.markdown(card_html, unsafe_allow_html=True)
