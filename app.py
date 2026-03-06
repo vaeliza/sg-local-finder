@@ -127,14 +127,16 @@ for item in filtered_businesses:
     score = item.get("score", 0)
     result = item.get("details", {})
 
-    # 1️⃣ Photo (direct URL method)
-    photo_url = "https://via.placeholder.com/150?text=No+Image"
+   # 1️⃣ Photo (correct way)
+    photo_url = "https://via.placeholder.com/150?text=No+Image"  # default placeholder
     photos = result.get("photos")
     if photos and len(photos) > 0:
         photo_ref = photos[0].get("photo_reference")
         if photo_ref:
+        # Use the Google Place Photo API URL directly
             photo_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_ref}&key={st.secrets['GOOGLE_API_KEY']}"
 
+st.image(photo_url, width=150)
     # 2️⃣ Top 2 reviews
     top_reviews = ""
     if "reviews" in result and len(result["reviews"]) > 0:
