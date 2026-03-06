@@ -88,6 +88,7 @@ business_list = sorted(business_list, key=lambda x: x["score"], reverse=True)
 # -----------------------
 
 # Loop through all businesses
+# Loop through all businesses
 for item in business_list:
     row = item["row"]           # Row from Supabase
     rating = item["rating"]     # Average rating
@@ -111,18 +112,8 @@ for item in business_list:
             text = review.get("text", "")
             top_reviews += f"{author}: {text}\n\n"
 
-    # Construct Google Maps link
-    maps_url = f"https://www.google.com/maps/place/?q=place_id:{row['place_id']}"
-
-    # Optional: Embed Google Map iframe
-    map_embed = f"""
-    <iframe
-      width="300"
-      height="200"
-      frameborder="0" style="border:0"
-      src="https://www.google.com/maps/embed/v1/place?key={st.secrets['GOOGLE_API_KEY']}&q=place_id:{row['place_id']}" allowfullscreen>
-    </iframe>
-    """
+    # Construct Google Maps clickable link
+    maps_url = f"https://www.google.com/maps/search/?api=1&query={row['name']}&query_place_id={row['place_id']}"
 
     # Layout: 2 columns (image | info)
     col1, col2 = st.columns([1, 3])
@@ -140,12 +131,10 @@ for item in business_list:
         if top_reviews:
             st.write("**Top Reviews:**")
             st.write(top_reviews)
-        # Google Maps link
+        # Google Maps clickable link
         st.write(f"📍 [View on Google Maps]({maps_url})")
-        # Embed map
-        st.markdown(map_embed, unsafe_allow_html=True)
 
     # Divider between cards
     st.markdown("---")
-    
-    
+
+
