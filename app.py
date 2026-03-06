@@ -136,7 +136,7 @@ for item in filtered_businesses:
         # Use the Google Place Photo API URL directly
             photo_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_ref}&key={st.secrets['GOOGLE_API_KEY']}"
 
-st.image(photo_url, width=150)
+    st.image(photo_url, width=150)
     # 2️⃣ Top 2 reviews
     top_reviews = ""
     if "reviews" in result and len(result["reviews"]) > 0:
