@@ -86,53 +86,61 @@ business_list = sorted(business_list, key=lambda x: x["score"], reverse=True)
 # -----------------------
 # DISPLAY BUSINESSES
 # -----------------------
+from urllib.parse import quote
 
-# Loop through all businesses
 # Loop through all businesses
 for item in business_list:
     row = item["row"]           # Row from Supabase
-    rating = item["rating"]     # Average rating
-    reviews = item["reviews"]   # Number of reviews
-    score = item["score"]       # Support Local Score
-    result = item["details"]    # Google Places details
+    rating = item.get("rating", 0)     # Average rating
+    reviews = item.get("reviews", 0)   # Number of reviews
+    score = item.get("score", 0)       # Support Local Score
+    result = item.get("details", {})   # Google Places details
 
-    # Get business photo or fallback
-    photo_url = ""
-    if "photos" in result:
-        photo_ref = result["photos"][0]["photo_reference"]
-        photo_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_ref}&key={st.secrets['GOOGLE_API_KEY']}"
-    else:
-        photo_url = "https://via.placeholder.com/150?text=No+Image"
+    # -----------------------
+    # 1️⃣ Photo
+    # -----------------------
+    photo_url = "https://via.placeholder.com/150?text=No+Image"  # default
+    if "photos" in result and len(result["photos"]) > 0:
+        photo_ref = result["photos"][0].get("photo_reference")
+        if photo_ref:
+            photo_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_ref}&key={st.secrets['GOOGLE_API_KEY']}"
 
-    # Top 2 reviews
+    # -----------------------
+    # 2️⃣ Top 2 reviews
+    # -----------------------
     top_reviews = ""
-    if "reviews" in result:
+    if "reviews" in result and len(result["reviews"]) > 0:
         for review in result["reviews"][:2]:
             author = review.get("author_name", "Anonymous")
             text = review.get("text", "")
             top_reviews += f"{author}: {text}\n\n"
 
-    # Construct Google Maps clickable link
-    maps_url = f"https://www.google.com/maps/search/?api=1&query={row['name']}&query_place_id={row['place_id']}"
+    # -----------------------
+    # 3️⃣ Google Maps link
+    # -----------------------
+    # Properly encode business name for URL
+    maps_url = f"https://www.google.com/maps/search/?api=1&query={quote(row['name'])}&query_place_id={row['place_id']}"
 
-    # Layout: 2 columns (image | info)
+    # -----------------------
+    # 4️⃣ Layout: 2 columns (image | info)
+    # -----------------------
     col1, col2 = st.columns([1, 3])
 
     with col1:
         st.image(photo_url, width=150)
 
     with col2:
-        st.subheader(row["name"])
-        st.write(row["description"])
-        st.write(f"**Category:** {row['category']}")
-        if row["website"]:
-            st.write(f"🌐 [Website]({row['website']})")
+        st.subheader(row.get("name", "Unnamed Business"))
+        st.write(row.get("description", "No description available"))
+        st.write(f"**Category:** {row.get('category', 'N/A')}")
+        website = row.get("website", "")
+        if website:
+            st.markdown(f"🌐 [Website]({website})", unsafe_allow_html=True)
         st.write(f"⭐ Rating: {rating} | 🗣 Reviews: {reviews} | 🏆 Support Local Score: {score}")
         if top_reviews:
             st.write("**Top Reviews:**")
             st.write(top_reviews)
-        # Google Maps clickable link
-        st.write(f"📍 [View on Google Maps]({maps_url})")
+        st.markdown(f"📍 [View on Google Maps]({maps_url})", unsafe_allow_html=True)
 
     # Divider between cards
     st.markdown("---")
