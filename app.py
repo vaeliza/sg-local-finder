@@ -1,3 +1,4 @@
+ 
 import streamlit as st
 import pandas as pd
 import requests
@@ -32,10 +33,7 @@ category_filter = st.selectbox(
 user_lat, user_lng = None, None
 if search_location:
     geocode_url = "https://maps.googleapis.com/maps/api/geocode/json"
-    params = {
-        "address": search_location,
-        "key": st.secrets["GOOGLE_API_KEY"]
-    }
+    params = {"address": search_location, "key": st.secrets["GOOGLE_API_KEY"]}
     resp = requests.get(geocode_url, params=params).json()
     if resp.get("results"):
         user_lat = resp["results"][0]["geometry"]["location"]["lat"]
@@ -85,12 +83,32 @@ for _, row in df.iterrows():
     lat = result.get("geometry", {}).get("location", {}).get("lat")
     lng = result.get("geometry", {}).get("location", {}).get("lng")
 
+    # Get the first available photo (if exists)
+    photo_url = "https://via.placeholder.com/300x200?text=No+Image"
+    photos = result.get("photos")
+    if photos and len(photos) > 0:
+        photo_ref = photos[0].get("photo_reference")
+        if photo_ref:
+            photo_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_ref}&key={st.secrets['GOOGLE_API_KEY']}"
+
+    # Top 2 reviews
+    top_reviews_html = ""
+    if "reviews" in result and len(result["reviews"]) > 0:
+        for review in result["reviews"][:2]:
+            author = review.get("author_name", "Anonymous")
+            text = review.get("text", "")
+            top_reviews_html += f"<b>{author}:</b> {text}<br>"
+
+    maps_url = f"https://www.google.com/maps/search/?api=1&query={quote(row['name'])}&query_place_id={row['place_id']}"
+
     business_list.append({
         "row": row,
         "rating": rating,
         "reviews": review_count,
         "score": score,
-        "details": result,
+        "photo_url": photo_url,
+        "top_reviews_html": top_reviews_html,
+        "maps_url": maps_url,
         "lat": lat,
         "lng": lng
     })
@@ -119,55 +137,27 @@ filtered_businesses = sorted(filtered_businesses, key=lambda x: x["score"], reve
 # -----------------------
 for item in filtered_businesses:
     row = item["row"]
-    rating = item.get("rating", 0)
-    reviews = item.get("reviews", 0)
-    score = item.get("score", 0)
-    result = item.get("details", {})
+    rating = item["rating"]
+    reviews = item["reviews"]
+    score = item["score"]
+    photo_url = item["photo_url"]
+    top_reviews_html = item["top_reviews_html"]
+    maps_url = item["maps_url"]
 
-    # 1️⃣ Photo URL
-    photo_url = "https://via.placeholder.com/300x200?text=No+Image"
-    photos = result.get("photos")
-    if photos and len(photos) > 0:
-        photo_ref = photos[0].get("photo_reference")
-        if photo_ref:
-            photo_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_ref}&key={st.secrets['GOOGLE_API_KEY']}"
-
-    # 2️⃣ Top 2 reviews
-    top_reviews = ""
-    if "reviews" in result and len(result["reviews"]) > 0:
-        for review in result["reviews"][:2]:
-            author = review.get("author_name", "Anonymous")
-            text = review.get("text", "")
-            top_reviews += f"<b>{author}:</b> {text}<br>"
-
-    # 3️⃣ Google Maps link
-    maps_url = f"https://www.google.com/maps/search/?api=1&query={quote(row['name'])}&query_place_id={row['place_id']}"
-
-    # 4️⃣ Bootstrap-style responsive card
+    # Bootstrap-style card
     card_html = f"""
-    <style>
-        @media(max-width:768px) {{
-            .card-container {{
-                flex-direction: column !important;
-            }}
-            .card-image {{
-                width:100% !important;
-                height:auto !important;
-            }}
-        }}
-    </style>
-    <div class="card-container" style="display:flex; flex-direction:row; border:1px solid #ddd; border-radius:10px; box-shadow:0 2px 5px rgba(0,0,0,0.1); margin-bottom:20px; overflow:hidden;">
-        <div class="card-image" style="flex:1 0 200px;">
-            <img src="{photo_url}" style="width:100%; height:100%; object-fit:cover;">
+    <div style="display:flex; flex-direction:row; border:1px solid #ddd; border-radius:10px; box-shadow:0 2px 5px rgba(0,0,0,0.1); margin-bottom:20px; overflow:hidden;">
+        <div style="flex:1 0 200px;">
+            <img src="{photo_url}" style="width:100%; height:100%; object-fit:cover; border-right:1px solid #ddd;">
         </div>
-        <div class="card-info" style="flex:2; padding:15px;">
+        <div style="flex:2; padding:15px;">
             <h3 style="margin:0;">{row.get('name','Unnamed Business')}</h3>
             <p>{row.get('description','No description available')}</p>
             <p><b>Category:</b> {row.get('category','N/A')}</p>
-            {"<p>🌐 <a href='"+row.get('website')+"' target='_blank'>Website</a></p>" if row.get('website') else ""}
+            {"🌐 <a href='"+row.get('website')+"' target='_blank'>Website</a><br>" if row.get('website') else ""}
             <p>⭐ Rating: {rating} | 🗣 Reviews: {reviews} | 🏆 Support Local Score: {score}</p>
-            {("<p><b>Top Reviews:</b><br>"+top_reviews+"</p>") if top_reviews else ""}
-            <p>📍 <a href="{maps_url}" target="_blank">View on Google Maps</a></p>
+            {("<b>Top Reviews:</b><br>"+top_reviews_html) if top_reviews_html else ""}
+            <a href="{maps_url}" target="_blank">📍 View on Google Maps</a>
         </div>
     </div>
     """
