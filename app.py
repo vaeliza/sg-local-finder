@@ -3,6 +3,8 @@ import pandas as pd
 import requests
 from urllib.parse import quote
 from geopy.distance import geodesic
+from io import BytesIO
+from PIL import Image
 
 from supabase_client import get_supabase_client
 from google_places import get_place_details
@@ -53,7 +55,6 @@ df = pd.DataFrame(data.data)
 # -----------------------
 if search_text:
     df = df[df["name"].str.contains(search_text, case=False)]
-
 if category_filter != "All":
     df = df[df["category"] == category_filter]
 
@@ -71,10 +72,24 @@ def calculate_support_score(rating, review_count, has_website):
     return round(score)
 
 # -----------------------
+# HELPER: FETCH GOOGLE PLACE PHOTO
+# -----------------------
+def get_place_photo(photo_reference, api_key):
+    url = "https://maps.googleapis.com/maps/api/place/photo"
+    params = {"maxwidth": 400, "photoreference": photo_reference, "key": api_key}
+    resp = requests.get(url, allow_redirects=True)
+    if resp.status_code == 200:
+        try:
+            img = Image.open(BytesIO(resp.content))
+            return img
+        except:
+            return None
+    return None
+
+# -----------------------
 # BUILD BUSINESS LIST
 # -----------------------
 business_list = []
-
 for _, row in df.iterrows():
     details = get_place_details(row["place_id"])
     result = details.get("result", {})
@@ -84,7 +99,6 @@ for _, row in df.iterrows():
     has_website = bool(row.get("website"))
 
     score = calculate_support_score(rating, review_count, has_website)
-
     lat = result.get("geometry", {}).get("location", {}).get("lat")
     lng = result.get("geometry", {}).get("location", {}).get("lng")
 
@@ -118,7 +132,7 @@ for item in business_list:
 filtered_businesses = sorted(filtered_businesses, key=lambda x: x["score"], reverse=True)
 
 # -----------------------
-# DISPLAY BUSINESS CARDS (RESPONSIVE)
+# DISPLAY BUSINESS CARDS (RESPONSIVE + WORKING IMAGES)
 # -----------------------
 for item in filtered_businesses:
     row = item["row"]
@@ -127,15 +141,15 @@ for item in filtered_businesses:
     score = item.get("score", 0)
     result = item.get("details", {})
 
-    # Photo
-    photo_url = "https://via.placeholder.com/300x200?text=No+Image"
+    # 1️⃣ Get photo
+    photo_img = None
     photos = result.get("photos")
     if photos and len(photos) > 0:
         photo_ref = photos[0].get("photo_reference")
         if photo_ref:
-            photo_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_ref}&key={st.secrets['GOOGLE_API_KEY']}"
+            photo_img = get_place_photo(photo_ref, st.secrets["GOOGLE_API_KEY"])
 
-    # Top 2 reviews
+    # 2️⃣ Top 2 reviews
     top_reviews = ""
     if "reviews" in result and len(result["reviews"]) > 0:
         for review in result["reviews"][:2]:
@@ -143,10 +157,10 @@ for item in filtered_businesses:
             text = review.get("text", "")
             top_reviews += f"<b>{author}:</b> {text}<br>"
 
-    # Google Maps link
+    # 3️⃣ Google Maps link
     maps_url = f"https://www.google.com/maps/search/?api=1&query={quote(row['name'])}&query_place_id={row['place_id']}"
 
-    # Responsive card HTML
+    # 4️⃣ Responsive Bootstrap-style card
     card_html = f"""
     <style>
         @media(max-width:768px) {{
@@ -161,7 +175,8 @@ for item in filtered_businesses:
     </style>
     <div class="card-container" style="display:flex; flex-direction:row; border:1px solid #ddd; border-radius:10px; box-shadow:0 2px 5px rgba(0,0,0,0.1); margin-bottom:20px; overflow:hidden;">
         <div class="card-image" style="flex:1 0 200px;">
-            <img src="{photo_url}" style="width:100%; height:100%; object-fit:cover;">
+            {'' if photo_img is None else f'<img src="data:image/jpeg;base64,{st.image(photo_img, output_format="JPEG")}" style="width:100%; height:100%; object-fit:cover;">'}
+            {'' if photo_img else '<img src="https://via.placeholder.com/300x200?text=No+Image" style="width:100%; height:100%; object-fit:cover;">'}
         </div>
         <div class="card-info" style="flex:2; padding:15px;">
             <h3 style="margin:0;">{row.get('name','Unnamed Business')}</h3>
