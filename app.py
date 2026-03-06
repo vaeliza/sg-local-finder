@@ -120,7 +120,7 @@ for item in business_list:
             <p><b>Category:</b> {row['category']}</p>
             <p><b>Website:</b> <a href="{row['website']}" target="_blank">{row['website']}</a></p>
             <p>⭐ Rating: {rating} | 🗣 Reviews: {reviews} | 🏆 Support Local Score: {score}</p>
-            {top_reviews}
+            
         </div>
     </div>
     """,
