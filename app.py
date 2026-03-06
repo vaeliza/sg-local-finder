@@ -1,5 +1,4 @@
- 
-import streamlit as st
+ import streamlit as st
 import pandas as pd
 import requests
 from urllib.parse import quote
@@ -78,12 +77,9 @@ for _, row in df.iterrows():
     rating = result.get("rating", 0)
     review_count = result.get("user_ratings_total", 0)
     has_website = bool(row.get("website"))
-
     score = calculate_support_score(rating, review_count, has_website)
-    lat = result.get("geometry", {}).get("location", {}).get("lat")
-    lng = result.get("geometry", {}).get("location", {}).get("lng")
 
-    # Get the first available photo (if exists)
+    # Get photo URL
     photo_url = "https://via.placeholder.com/300x200?text=No+Image"
     photos = result.get("photos")
     if photos and len(photos) > 0:
@@ -92,14 +88,17 @@ for _, row in df.iterrows():
             photo_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_ref}&key={st.secrets['GOOGLE_API_KEY']}"
 
     # Top 2 reviews
-    top_reviews_html = ""
+    top_reviews = []
     if "reviews" in result and len(result["reviews"]) > 0:
         for review in result["reviews"][:2]:
             author = review.get("author_name", "Anonymous")
             text = review.get("text", "")
-            top_reviews_html += f"<b>{author}:</b> {text}<br>"
+            top_reviews.append(f"{author}: {text}")
 
     maps_url = f"https://www.google.com/maps/search/?api=1&query={quote(row['name'])}&query_place_id={row['place_id']}"
+
+    lat = result.get("geometry", {}).get("location", {}).get("lat")
+    lng = result.get("geometry", {}).get("location", {}).get("lng")
 
     business_list.append({
         "row": row,
@@ -107,7 +106,7 @@ for _, row in df.iterrows():
         "reviews": review_count,
         "score": score,
         "photo_url": photo_url,
-        "top_reviews_html": top_reviews_html,
+        "top_reviews": top_reviews,
         "maps_url": maps_url,
         "lat": lat,
         "lng": lng
@@ -133,7 +132,7 @@ for item in business_list:
 filtered_businesses = sorted(filtered_businesses, key=lambda x: x["score"], reverse=True)
 
 # -----------------------
-# DISPLAY BUSINESS CARDS
+# DISPLAY BUSINESS CARDS (using Streamlit components)
 # -----------------------
 for item in filtered_businesses:
     row = item["row"]
@@ -141,24 +140,23 @@ for item in filtered_businesses:
     reviews = item["reviews"]
     score = item["score"]
     photo_url = item["photo_url"]
-    top_reviews_html = item["top_reviews_html"]
+    top_reviews = item["top_reviews"]
     maps_url = item["maps_url"]
 
-    # Bootstrap-style card
-    card_html = f"""
-    <div style="display:flex; flex-direction:row; border:1px solid #ddd; border-radius:10px; box-shadow:0 2px 5px rgba(0,0,0,0.1); margin-bottom:20px; overflow:hidden;">
-        <div style="flex:1 0 200px;">
-            <img src="{photo_url}" style="width:100%; height:100%; object-fit:cover; border-right:1px solid #ddd;">
-        </div>
-        <div style="flex:2; padding:15px;">
-            <h3 style="margin:0;">{row.get('name','Unnamed Business')}</h3>
-            <p>{row.get('description','No description available')}</p>
-            <p><b>Category:</b> {row.get('category','N/A')}</p>
-            {"🌐 <a href='"+row.get('website')+"' target='_blank'>Website</a><br>" if row.get('website') else ""}
-            <p>⭐ Rating: {rating} | 🗣 Reviews: {reviews} | 🏆 Support Local Score: {score}</p>
-            {("<b>Top Reviews:</b><br>"+top_reviews_html) if top_reviews_html else ""}
-            <a href="{maps_url}" target="_blank">📍 View on Google Maps</a>
-        </div>
-    </div>
-    """
-    st.markdown(card_html, unsafe_allow_html=True)
+    col1, col2 = st.columns([1, 3])
+    with col1:
+        st.image(photo_url, use_column_width=True)
+    with col2:
+        st.subheader(row.get("name", "Unnamed Business"))
+        st.write(row.get("description", "No description available"))
+        st.write(f"**Category:** {row.get('category', 'N/A')}")
+        if row.get("website"):
+            st.markdown(f"🌐 [Website]({row.get('website')})", unsafe_allow_html=True)
+        st.write(f"⭐ Rating: {rating} | 🗣 Reviews: {reviews} | 🏆 Support Local Score: {score}")
+        if top_reviews:
+            st.write("**Top Reviews:**")
+            for review_text in top_reviews:
+                st.write(f"- {review_text}")
+        st.markdown(f"📍 [View on Google Maps]({maps_url})", unsafe_allow_html=True)
+
+    st.markdown("---")
