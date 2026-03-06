@@ -87,14 +87,15 @@ business_list = sorted(business_list, key=lambda x: x["score"], reverse=True)
 # DISPLAY BUSINESSES
 # -----------------------
 
+# Loop through all businesses
 for item in business_list:
-    row = item["row"]
-    rating = item["rating"]
-    reviews = item["reviews"]
-    score = item["score"]
-    result = item["details"]
+    row = item["row"]           # Row from Supabase
+    rating = item["rating"]     # Average rating
+    reviews = item["reviews"]   # Number of reviews
+    score = item["score"]       # Support Local Score
+    result = item["details"]    # Google Places details
 
-    # Get photo URL or fallback
+    # Get business photo or fallback
     photo_url = ""
     if "photos" in result:
         photo_ref = result["photos"][0]["photo_reference"]
@@ -106,9 +107,24 @@ for item in business_list:
     top_reviews = ""
     if "reviews" in result:
         for review in result["reviews"][:2]:
-            top_reviews += f"{review['author_name']}: {review['text']}\n\n"
+            author = review.get("author_name", "Anonymous")
+            text = review.get("text", "")
+            top_reviews += f"{author}: {text}\n\n"
 
-    # Create 2 columns: image | text
+    # Construct Google Maps link
+    maps_url = f"https://www.google.com/maps/place/?q=place_id:{row['place_id']}"
+
+    # Optional: Embed Google Map iframe
+    map_embed = f"""
+    <iframe
+      width="300"
+      height="200"
+      frameborder="0" style="border:0"
+      src="https://www.google.com/maps/embed/v1/place?key={st.secrets['GOOGLE_API_KEY']}&q=place_id:{row['place_id']}" allowfullscreen>
+    </iframe>
+    """
+
+    # Layout: 2 columns (image | info)
     col1, col2 = st.columns([1, 3])
 
     with col1:
@@ -118,13 +134,18 @@ for item in business_list:
         st.subheader(row["name"])
         st.write(row["description"])
         st.write(f"**Category:** {row['category']}")
-        st.write(f"🌐 [Website]({row['website']})")
+        if row["website"]:
+            st.write(f"🌐 [Website]({row['website']})")
         st.write(f"⭐ Rating: {rating} | 🗣 Reviews: {reviews} | 🏆 Support Local Score: {score}")
         if top_reviews:
             st.write("**Top Reviews:**")
             st.write(top_reviews)
+        # Google Maps link
+        st.write(f"📍 [View on Google Maps]({maps_url})")
+        # Embed map
+        st.markdown(map_embed, unsafe_allow_html=True)
 
-    st.markdown("---")  # Divider between cards
-
-
+    # Divider between cards
+    st.markdown("---")
+    
     
